@@ -80,28 +80,41 @@ const SwapRequestDialog = ({
       return;
     }
 
-    // Update both events to SWAP_PENDING
-    const { error: updateError } = await supabase
+    // Verify both slots exist and are SWAPPABLE
+    const { data: bothEvents, error: verifyError } = await supabase
       .from("events")
-      .update({ status: "SWAP_PENDING" })
+      .select("id, status, user_id")
       .in("id", [selectedEventId, targetEvent.id]);
 
-    if (updateError) {
+    if (verifyError || !bothEvents || bothEvents.length !== 2) {
       toast({
         title: "Error",
-        description: "Failed to update event status",
+        description: "Failed to verify events exist",
         variant: "destructive",
       });
       setLoading(false);
       return;
     }
 
-    // Get the target event owner
-    const { data: targetEventData } = await supabase
+    // Check both events are SWAPPABLE
+    const allSwappable = bothEvents.every((event) => event.status === "SWAPPABLE");
+    if (!allSwappable) {
+      toast({
+        title: "Error",
+        description: "One or both events are no longer available for swapping",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    const targetEventData = bothEvents.find((e) => e.id === targetEvent.id);
+
+    // Update both events to SWAP_PENDING
+    const { error: updateError } = await supabase
       .from("events")
-      .select("user_id")
-      .eq("id", targetEvent.id)
-      .single();
+      .update({ status: "SWAP_PENDING" })
+      .in("id", [selectedEventId, targetEvent.id]);
 
     // Create swap request
     const { error: requestError } = await supabase.from("swap_requests").insert({
