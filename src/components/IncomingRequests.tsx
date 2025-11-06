@@ -157,6 +157,25 @@ const IncomingRequests = ({ userId }: IncomingRequestsProps) => {
         variant: "destructive",
       });
     } else {
+      // Send email notification to the requester
+      const { data: requesterData } = await supabase.auth.admin.getUserById(
+        requesterEventData?.user_id || ""
+      );
+
+      if (requesterData?.user?.email) {
+        supabase.functions
+          .invoke("send-swap-notification", {
+            body: {
+              recipientEmail: requesterData.user.email,
+              recipientName: requesterData.user.user_metadata?.name || requesterData.user.email,
+              notificationType: "accepted",
+              requesterEventTitle: request.requester_event.title,
+              ownerEventTitle: request.owner_event.title,
+            },
+          })
+          .catch((err) => console.error("Failed to send email:", err));
+      }
+
       toast({
         title: "Success",
         description: "Swap accepted! Events have been exchanged.",
@@ -205,6 +224,34 @@ const IncomingRequests = ({ userId }: IncomingRequestsProps) => {
         variant: "destructive",
       });
     } else {
+      // Get requester user_id from the events table
+      const { data: requesterEventData } = await supabase
+        .from("events")
+        .select("user_id")
+        .eq("id", request.requester_event.id)
+        .single();
+
+      // Send email notification to the requester
+      if (requesterEventData?.user_id) {
+        const { data: requesterData } = await supabase.auth.admin.getUserById(
+          requesterEventData.user_id
+        );
+
+        if (requesterData?.user?.email) {
+          supabase.functions
+            .invoke("send-swap-notification", {
+              body: {
+                recipientEmail: requesterData.user.email,
+                recipientName: requesterData.user.user_metadata?.name || requesterData.user.email,
+                notificationType: "rejected",
+                requesterEventTitle: request.requester_event.title,
+                ownerEventTitle: request.owner_event.title,
+              },
+            })
+            .catch((err) => console.error("Failed to send email:", err));
+        }
+      }
+
       toast({
         title: "Request rejected",
         description: "The swap request has been rejected.",

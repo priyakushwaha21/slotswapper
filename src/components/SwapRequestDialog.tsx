@@ -132,6 +132,28 @@ const SwapRequestDialog = ({
         variant: "destructive",
       });
     } else {
+      // Send email notification to the owner
+      const myEvent = mySwappableEvents.find((e) => e.id === selectedEventId);
+      
+      const { data: ownerData } = await supabase.auth.admin.getUserById(
+        targetEventData?.user_id || ""
+      );
+
+      if (ownerData?.user?.email && myEvent) {
+        supabase.functions
+          .invoke("send-swap-notification", {
+            body: {
+              recipientEmail: ownerData.user.email,
+              recipientName: ownerData.user.user_metadata?.name || ownerData.user.email,
+              notificationType: "new_request",
+              requesterName: (await supabase.auth.getUser()).data.user?.user_metadata?.name || "A user",
+              requesterEventTitle: myEvent.title,
+              ownerEventTitle: targetEvent.title,
+            },
+          })
+          .catch((err) => console.error("Failed to send email:", err));
+      }
+
       toast({
         title: "Success",
         description: "Swap request sent successfully",
