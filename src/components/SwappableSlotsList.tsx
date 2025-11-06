@@ -50,6 +50,28 @@ const SwappableSlotsList = ({ userId }: SwappableSlotsListProps) => {
     if (userId) {
       fetchSwappableEvents();
     }
+
+    // Set up realtime subscription for swappable events
+    const channel = supabase
+      .channel('swappable-slots-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        (payload) => {
+          console.log('Swappable event change:', payload);
+          // Refetch when any event changes status or gets added/removed
+          fetchSwappableEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   if (loading) {

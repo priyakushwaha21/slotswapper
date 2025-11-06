@@ -64,6 +64,35 @@ const IncomingRequests = ({ userId }: IncomingRequestsProps) => {
     if (userId) {
       fetchIncomingRequests();
     }
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('incoming-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'swap_requests',
+          filter: `owner_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Incoming request change:', payload);
+          fetchIncomingRequests();
+          
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "New Swap Request!",
+              description: "Someone wants to swap with you",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const handleAccept = async (request: SwapRequest) => {

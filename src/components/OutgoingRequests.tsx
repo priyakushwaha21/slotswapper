@@ -63,6 +63,42 @@ const OutgoingRequests = ({ userId }: OutgoingRequestsProps) => {
     if (userId) {
       fetchOutgoingRequests();
     }
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('outgoing-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'swap_requests',
+          filter: `requester_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Outgoing request status change:', payload);
+          fetchOutgoingRequests();
+          
+          const newStatus = (payload.new as any).status;
+          if (newStatus === 'ACCEPTED') {
+            toast({
+              title: "Swap Accepted!",
+              description: "Your swap request was accepted",
+            });
+          } else if (newStatus === 'REJECTED') {
+            toast({
+              title: "Swap Rejected",
+              description: "Your swap request was rejected",
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   if (loading) {

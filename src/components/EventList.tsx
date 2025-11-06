@@ -48,6 +48,28 @@ const EventList = ({ userId }: EventListProps) => {
     if (userId) {
       fetchEvents();
     }
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Event change:', payload);
+          fetchEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const handleToggleSwappable = async (eventId: string, currentStatus: string) => {
