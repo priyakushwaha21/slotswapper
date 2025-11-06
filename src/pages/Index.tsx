@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft, Calendar, Users, Zap } from "lucide-react";
+import swapLogo from "@/assets/swap_logo.webp";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -21,12 +22,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md">
-                <ArrowRightLeft className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                SlotSwapper
-              </span>
+              <img src={swapLogo} alt="SlotSwapper" className="h-12 w-auto" />
             </div>
             <Button onClick={() => navigate("/auth")}>Get Started</Button>
           </div>
